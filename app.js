@@ -8,8 +8,8 @@
 
   // Chaves de armazenamento local
   const STORAGE_KEY_MODE = 'simulado_sd_mode_v2';
-  const STORAGE_KEY_PROVA_ANSWERS = 'simulado_sd_prova_answers_v2';
-  const STORAGE_KEY_PROVA_ORDER = 'simulado_sd_prova_order_v2';
+  const STORAGE_KEY_PROVA_ANSWERS = 'simulado_sd_prova_answers_v3';
+  const STORAGE_KEY_PROVA_SESSION = 'simulado_sd_prova_session_v3';
   const STORAGE_KEY_GERAL_ANSWERS = 'simulado_sd_answers_v1';
   const STORAGE_KEY_DISCURSIVE = 'simulado_sd_discursive_v1';
   const STORAGE_KEY_THEME = 'simulado_sd_theme_v1';
@@ -132,22 +132,57 @@
   }
 
   // --------------------------------------------------------------------------
+  // Preparação de Questão com Alternativas Embaralhadas (Modo Prova)
+  // --------------------------------------------------------------------------
+
+  function prepareShuffledQuestion(rawQ, orderIndex) {
+    const letters = ['A', 'B', 'C', 'D', 'E'];
+    // Localiza o texto da resposta correta original
+    const correctAlt = rawQ.alternativas.find(a => a.letra === rawQ.gabarito);
+    const correctText = correctAlt ? correctAlt.texto : '';
+
+    // Embaralha as alternativas usando Fisher-Yates
+    const shuffledRawAlts = shuffleArray(rawQ.alternativas);
+
+    let newGabarito = null;
+    const newAlternativas = shuffledRawAlts.map((alt, idx) => {
+      const letAssigned = letters[idx];
+      if (alt.texto === correctText) {
+        newGabarito = letAssigned;
+      }
+      return {
+        letra: letAssigned,
+        texto: alt.texto
+      };
+    });
+
+    return {
+      id: rawQ.id, // ID original de referência
+      orderIndex: orderIndex, // 1..7 (ordem sequencial no teste)
+      titulo: `Questão ${orderIndex} · ${rawQ.tema}`,
+      tema: rawQ.tema,
+      enunciado: rawQ.enunciado,
+      alternativas: newAlternativas,
+      gabarito: newGabarito,
+      explicacao: rawQ.explicacao,
+      tipo: rawQ.tipo || 'multipla_escolha',
+      anulada: false,
+      fonte: rawQ.fonte || 'Avaliação de Sistemas Distribuídos'
+    };
+  }
+
+  // --------------------------------------------------------------------------
   // Inicialização
   // --------------------------------------------------------------------------
 
   async function init() {
     initTheme();
-
-    // Carregar bases de dados
     await loadDataSources();
 
-    // Determinar modo ativo (Modo Prova é padrão ou lido do storage)
     const storedMode = localStorage.getItem(STORAGE_KEY_MODE);
-
     setupEventListeners();
 
     if (!storedMode) {
-      // Primeira visita: abre o modal de boas-vindas para seleção de modo
       setMode('prova', true);
       showModeSelectModal();
     } else {
@@ -156,7 +191,7 @@
   }
 
   async function loadDataSources() {
-    // 1. Carrega Simulado Geral (67 questões)
+    // 1. Simulado Geral (67 questões)
     try {
       if (window.QUESTOES_DATA && Array.isArray(window.QUESTOES_DATA) && window.QUESTOES_DATA.length > 0) {
         geralQuestions = window.QUESTOES_DATA;
@@ -169,7 +204,7 @@
       console.warn('Erro ao carregar questoes.json:', err);
     }
 
-    // 2. Carrega Modo Prova (7 questões)
+    // 2. Modo Prova (7 questões brutas)
     try {
       if (window.QUESTOES_PROVA_DATA && Array.isArray(window.QUESTOES_PROVA_DATA) && window.QUESTOES_PROVA_DATA.length > 0) {
         provaQuestionsRaw = window.QUESTOES_PROVA_DATA;
@@ -204,7 +239,6 @@
     retryBanner.style.display = 'none';
 
     if (mode === 'prova') {
-      // UI Header para Modo Prova
       headerLogoSubtitle.textContent = 'Modo Prova · 7 Questões Embaralhadas';
       headerModeIcon.textContent = '🎯';
       headerModeText.textContent = 'Modo Prova';
@@ -223,12 +257,10 @@
       resultTitle.textContent = 'Resultado da Prova';
       resultSubtitle.textContent = 'Desempenho nas 7 questões avaliadas da disciplina';
 
-      // Gerenciar embaralhamento
       setupProvaQuestions(reshuffle);
       loadStoredAnswersForCurrentMode();
 
     } else {
-      // UI Header para Simulado Geral
       headerLogoSubtitle.textContent = 'Simulado Geral · ENADE & POSCOMP · 67 Questões';
       headerModeIcon.textContent = '🌐';
       headerModeText.textContent = 'Simulado Geral';
@@ -258,7 +290,6 @@
       loadStoredAnswersForCurrentMode();
     }
 
-    // Retorna para a tela de teste
     resultView.classList.remove('active');
     quizView.classList.add('active');
 
@@ -271,27 +302,32 @@
   function setupProvaQuestions(forceReshuffle) {
     if (provaQuestionsRaw.length === 0) return;
 
-    let ordered = [];
-    const savedOrderJson = localStorage.getItem(STORAGE_KEY_PROVA_ORDER);
+    let sessionQuestions = null;
 
-    if (!forceReshuffle && savedOrderJson) {
-      try {
-        const savedIds = JSON.parse(savedOrderJson);
-        const map = new Map(provaQuestionsRaw.map(q => [q.id, q]));
-        ordered = savedIds.map(id => map.get(id)).filter(Boolean);
-      } catch (e) {
-        ordered = [];
+    if (!forceReshuffle) {
+      const savedSession = localStorage.getItem(STORAGE_KEY_PROVA_SESSION);
+      if (savedSession) {
+        try {
+          const parsed = JSON.parse(savedSession);
+          if (Array.isArray(parsed) && parsed.length === provaQuestionsRaw.length) {
+            sessionQuestions = parsed;
+          }
+        } catch (e) {
+          sessionQuestions = null;
+        }
       }
     }
 
-    if (ordered.length !== provaQuestionsRaw.length) {
-      // Embaralhar usando Fisher-Yates
-      ordered = shuffleArray(provaQuestionsRaw);
-      const newIds = ordered.map(q => q.id);
-      localStorage.setItem(STORAGE_KEY_PROVA_ORDER, JSON.stringify(newIds));
+    if (!sessionQuestions) {
+      // 1. Embaralha a ordem das questões
+      const shuffledRaw = shuffleArray(provaQuestionsRaw);
+      // 2. Para cada questão: atribui ordem sequencial (1..7) e embaralha as alternativas
+      sessionQuestions = shuffledRaw.map((rawQ, idx) => prepareShuffledQuestion(rawQ, idx + 1));
+      // 3. Salva a sessão no localStorage
+      localStorage.setItem(STORAGE_KEY_PROVA_SESSION, JSON.stringify(sessionQuestions));
     }
 
-    allQuestions = ordered;
+    allQuestions = sessionQuestions;
     filteredQuestions = [...allQuestions];
     activeQuestions = [...filteredQuestions];
     currentIndex = 0;
@@ -365,16 +401,11 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
 
-    // Negrito **texto**
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Itálico *texto*
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    // Código `code`
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    // Setas e símbolos comuns
     html = html.replace(/\\rightarrow/g, '→');
 
-    // Listas e quebras de linha
     const lines = html.split('\n');
     let inList = false;
     const output = [];
@@ -431,7 +462,7 @@
     // Tags
     if (currentMode === 'prova') {
       badgeExam.textContent = 'PROVA';
-      badgeTheme.textContent = 'Sistemas Distribuídos';
+      badgeTheme.textContent = q.tema;
       badgeTheme.title = q.tema;
     } else {
       badgeExam.textContent = `${q.exame} ${q.ano || ''}`.trim();
@@ -455,9 +486,17 @@
       badgeStatus.style.display = 'none';
     }
 
-    currentQNum.textContent = (currentIndex + 1);
+    const orderNum = (currentIndex + 1);
+    currentQNum.textContent = orderNum;
     totalQNum.textContent = activeQuestions.length;
-    qTitle.textContent = q.titulo;
+
+    // Título sequencial
+    if (currentMode === 'prova') {
+      qTitle.textContent = q.titulo || `Questão ${orderNum} · ${q.tema}`;
+    } else {
+      qTitle.textContent = q.titulo;
+    }
+
     qStatement.innerHTML = renderMarkdown(q.enunciado);
     qSource.textContent = `Fonte: ${q.fonte}`;
 
@@ -776,7 +815,7 @@
       return;
     }
 
-    questionsToReview.forEach(q => {
+    questionsToReview.forEach((q, reviewIdx) => {
       const card = document.createElement('div');
       const userChoice = userAnswers[q.id];
 
@@ -836,7 +875,8 @@
       }
 
       const metaBadgeExam = currentMode === 'prova' ? 'PROVA' : `${q.exame} ${q.ano || ''}`;
-      const metaBadgeTheme = currentMode === 'prova' ? 'Sistemas Distribuídos' : `Tema ${q.tema_id}`;
+      const metaBadgeTheme = currentMode === 'prova' ? q.tema : `Tema ${q.tema_id}`;
+      const navIndicatorText = currentMode === 'prova' ? `Questão ${q.orderIndex || (reviewIdx + 1)}` : `Q${q.id}`;
 
       card.innerHTML = `
         <div class="card-meta-bar">
@@ -846,7 +886,7 @@
             ${q.correlata ? '<span class="badge badge-correlata">Correlata</span>' : ''}
             ${statusBadge}
           </div>
-          <div class="meta-nav-indicator">Q${q.id}</div>
+          <div class="meta-nav-indicator">${navIndicatorText}</div>
         </div>
 
         <h3 class="q-title">${q.titulo}</h3>
@@ -923,10 +963,11 @@
   }
 
   function reshuffleAndRestartProva() {
-    if (confirm('Deseja iniciar uma nova tentativa com as 7 questões em uma nova ordem embaralhada?')) {
+    if (confirm('Deseja iniciar uma nova tentativa com as 7 questões e alternativas em uma nova ordem embaralhada?')) {
       userAnswers = {};
       localStorage.removeItem(STORAGE_KEY_PROVA_ANSWERS);
-      setupProvaQuestions(true); // Forçar novo embaralhamento
+      localStorage.removeItem(STORAGE_KEY_PROVA_SESSION);
+      setupProvaQuestions(true); // Forçar novo embaralhamento de questões E alternativas
       saveCurrentAnswers();
 
       resultView.classList.remove('active');
@@ -945,7 +986,8 @@
       userAnswers = {};
       if (currentMode === 'prova') {
         localStorage.removeItem(STORAGE_KEY_PROVA_ANSWERS);
-        setupProvaQuestions(true); // Reembaralhar
+        localStorage.removeItem(STORAGE_KEY_PROVA_SESSION);
+        setupProvaQuestions(true); // Reembaralha tudo
       } else {
         discursiveAnswers = {};
         localStorage.removeItem(STORAGE_KEY_GERAL_ANSWERS);
@@ -972,13 +1014,9 @@
   // --------------------------------------------------------------------------
 
   function setupEventListeners() {
-    // Tema
     themeToggleBtn.addEventListener('click', toggleTheme);
-
-    // Botão de Trocar Modo
     btnModeSwitch.addEventListener('click', showModeSelectModal);
 
-    // Cards do Modal de Seleção de Modo
     cardSelectProva.addEventListener('click', () => setMode('prova', false));
     cardSelectGeral.addEventListener('click', () => setMode('geral', false));
 
@@ -996,7 +1034,6 @@
       }
     });
 
-    // Navegação
     btnPrev.addEventListener('click', () => {
       if (currentIndex > 0) {
         currentIndex--;
@@ -1026,14 +1063,12 @@
     restartHeaderBtn.addEventListener('click', resetCurrentMode);
     btnRestartAll.addEventListener('click', resetCurrentMode);
 
-    // Modal Finish
     btnModalCancel.addEventListener('click', () => {
       modalFinish.style.display = 'none';
     });
 
     btnModalConfirm.addEventListener('click', calculateAndDisplayResults);
 
-    // Retry / Reshuffle
     btnRetryErrors.addEventListener('click', startRetryErrorsMode);
     btnExitRetry.addEventListener('click', exitRetryMode);
     btnReshuffleTest.addEventListener('click', reshuffleAndRestartProva);
@@ -1044,11 +1079,9 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // Filtros
     filterExam.addEventListener('change', applyFilters);
     filterTheme.addEventListener('change', applyFilters);
 
-    // Discursiva
     btnShowDiscursiveKey.addEventListener('click', () => {
       discursiveExpectedBox.style.display =
         discursiveExpectedBox.style.display === 'none' ? 'block' : 'none';
@@ -1061,7 +1094,6 @@
       saveCurrentAnswers();
     });
 
-    // Filtros de Revisão
     document.querySelectorAll('.review-filter-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         currentReviewFilter = e.currentTarget.getAttribute('data-filter');
@@ -1070,7 +1102,6 @@
       });
     });
 
-    // Atalhos de teclado
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
 
@@ -1098,7 +1129,6 @@
     });
   }
 
-  // Executar ao carregar DOM
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

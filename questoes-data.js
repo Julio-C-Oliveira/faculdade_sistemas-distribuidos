@@ -2529,8 +2529,7 @@ window.QUESTOES_DATA = [
 window.QUESTOES_PROVA_DATA = [
   {
     "id": 1,
-    "titulo": "Questão 1 · Características de Sistemas Distribuídos",
-    "tema": "Conceitos e Características de Sistemas Distribuídos",
+    "tema": "Características de Sistemas Distribuídos",
     "enunciado": "Um sistema centralizado é um concentrador de recursos; um sistema distribuído apresenta seus recursos dispersos. Entretanto nem todo o conjunto de recursos computacionais dispersos pode ser considerado um sistema distribuído. Considerando um conjunto de computadores, assinale a alternativa que melhor corresponde às características necessárias para considerá-lo um sistema distribuído:",
     "alternativas": [
       {
@@ -2555,15 +2554,14 @@ window.QUESTOES_PROVA_DATA = [
       }
     ],
     "gabarito": "D",
-    "explicacao": "A base essencial para que múltiplos computadores autónomos formem um sistema distribuído é a capacidade de comunicar através de uma rede com primitivas de envio e receção de mensagens. Um relógio físico global único não existe em sistemas distribuídos (o que invalida a opção A); a heterogeneidade de hardware e de sistemas operativos é habitual, dispensando uniformidade (o que invalida a B); e a arquitetura não exige memória partilhada, física ou secundária, funcionando no modelo de nós desacoplados (shared-nothing) (o que invalida as opções C e E).",
+    "explicacao": "A base essencial para que múltiplos computadores autônomos formem um sistema distribuído é a capacidade de comunicar através de uma rede com primitivas de envio e recepção de mensagens. Um relógio físico global único não existe em sistemas distribuídos (invalida a opção com relógio global); a heterogeneidade de hardware e de sistemas operacionais é habitual, dispensando uniformidade (invalida a opção de SO idêntico e hardware padronizado); e a arquitetura não exige memória compartilhada, física ou secundária, funcionando no modelo de nós desacoplados (shared-nothing) (invalida as opções com memória compartilhada).",
     "tipo": "multipla_escolha",
     "anulada": false,
     "fonte": "Avaliação de Sistemas Distribuídos"
   },
   {
     "id": 2,
-    "titulo": "Questão 2 · Associação de Tipos de Sistemas Distribuídos",
-    "tema": "Tipos e Arquiteturas de Sistemas Distribuídos",
+    "tema": "Tipos de Sistemas Distribuídos",
     "enunciado": "Associe cada tipo de sistema distribuído (coluna da esquerda) ao exemplo ou característica que melhor o descreve (coluna da direita):\n\n**Coluna da Esquerda (Tipo de sistema):**\n- I. Computação em cluster\n- II. Computação em grade (grid)\n- III. Sistema de informação distribuído (cliente-servidor)\n- IV. Sistema pervasivo\n\n**Coluna da Direita (Exemplo / Característica):**\n- (P) Rede de sensores que coleta dados do ambiente e os repassa a um ponto de processamento, em sistemas que se adaptam ao contexto e são ubíquos.\n- (Q) Conjunto de computadores homogêneos, conectados por rede local de alta velocidade, normalmente com o mesmo sistema operacional e gerenciados por um único nó mestre.\n- (R) Federação de recursos computacionais de diferentes domínios administrativos, altamente heterogêneos, formando uma organização virtual.\n- (S) Aplicações em que clientes enviam requisições a servidores (por exemplo, bancos de dados), muitas vezes agrupadas em transações.\n\nAssinale a alternativa com a associação correta:",
     "alternativas": [
       {
@@ -2588,15 +2586,14 @@ window.QUESTOES_PROVA_DATA = [
       }
     ],
     "gabarito": "C",
-    "explicacao": "Associação correta: I → Q, II → R, III → S, IV → P.\n\n- **I → Q:** Os clusters consistem em máquinas homogéneas ligadas por redes de baixa latência sob gestão centralizada.\n- **II → R:** Os sistemas em grelha (grid) articulam recursos heterogéneos dispersos por múltiplos domínios administrativos (organizações virtuais).\n- **III → S:** Os sistemas de informação distribuídos clássicos assentam no modelo cliente-servidor transacional.\n- **IV → P:** A computação pervasiva foca-se na ubiquidade, sensoriamento ambiental e adaptação ao contexto.",
+    "explicacao": "A associação correta é I-Q, II-R, III-S, IV-P:\n\n- **I → Q:** Os clusters consistem em máquinas homogêneas ligadas por redes de baixa latência sob gestão centralizada.\n- **II → R:** Os sistemas em grade (grid) articulam recursos heterogêneos dispersos por múltiplos domínios administrativos (organizações virtuais).\n- **III → S:** Os sistemas de informação distribuídos clássicos assentam no modelo cliente-servidor transacional.\n- **IV → P:** A computação pervasiva foca-se na ubiquidade, sensoriamento ambiental e adaptação ao contexto.",
     "tipo": "multipla_escolha",
     "anulada": false,
     "fonte": "Avaliação de Sistemas Distribuídos"
   },
   {
     "id": 3,
-    "titulo": "Questão 3 · Middleware, Interceptadores e Transparência",
-    "tema": "Middleware e Transparência em Sistemas Distribuídos",
+    "tema": "Middleware, Interceptadores e Transparência",
     "enunciado": "Em sistemas distribuídos, o middleware pode facilitar a comunicação entre componentes e contribuir para a transparência do sistema. Considere as afirmações:\n\n1. O middleware oferece uma camada de software entre as aplicações e os mecanismos de comunicação subjacentes.\n2. Um interceptador pode capturar e tratar uma requisição ou mensagem antes que ela chegue ao seu destino.\n3. A transparência de distribuição procura ocultar determinados aspectos da distribuição dos recursos e componentes.\n4. A arquitetura do sistema e o middleware são conceitos idênticos, sem diferenças de finalidade ou responsabilidade.\n\nAlternativas de resposta:",
     "alternativas": [
       {
@@ -2621,14 +2618,13 @@ window.QUESTOES_PROVA_DATA = [
       }
     ],
     "gabarito": "B",
-    "explicacao": "As afirmações 1, 2 e 3 definem com precisão o papel do middleware, a operação de interceptadores e o propósito da transparência. A afirmação 4 é incorreta porque arquitetura (a organização conceptual e estrutural dos componentes) e middleware (a camada de software mediadora com serviços de integração) são conceitos distintos com finalidades diferentes.",
+    "explicacao": "As afirmações 1, 2 e 3 definem com precisão o papel do middleware, a operação de interceptadores e o propósito da transparência. A afirmação 4 é incorreta porque arquitetura (a organização conceitual e estrutural dos componentes) e middleware (a camada de software mediadora com serviços de integração) são conceitos distintos com finalidades diferentes.",
     "tipo": "multipla_escolha",
     "anulada": false,
     "fonte": "Avaliação de Sistemas Distribuídos"
   },
   {
     "id": 4,
-    "titulo": "Questão 4 · Migração de Código",
     "tema": "Mobilidade e Migração de Código",
     "enunciado": "A migração de código permite transferir código entre máquinas de um sistema distribuído. Sobre esse mecanismo, analise as afirmações:\n\n1. Pode permitir que o processamento seja realizado mais próximo dos recursos ou dados necessários.\n2. Pode reduzir a comunicação pela rede quando o código é executado próximo aos dados.\n3. Pode envolver a transferência de código e, dependendo do modelo, de dados ou do estado de execução.\n4. Aplica-se apenas à transferência de dados; aplica-se apenas para a execução de tarefas.\n\nQual alternativa descreve corretamente as afirmações verdadeiras?",
     "alternativas": [
@@ -2661,8 +2657,7 @@ window.QUESTOES_PROVA_DATA = [
   },
   {
     "id": 5,
-    "titulo": "Questão 5 · Função dos Interceptadores no Middleware",
-    "tema": "Middleware e Interceptadores",
+    "tema": "Função dos Interceptadores no Middleware",
     "enunciado": "No contexto da relação entre arquiteturas e middleware, qual é a função dos interceptadores (interceptors) e qual característica eles ajudam a construir?",
     "alternativas": [
       {
@@ -2687,15 +2682,14 @@ window.QUESTOES_PROVA_DATA = [
       }
     ],
     "gabarito": "C",
-    "explicacao": "Os interceptadores são mecanismos fundamentais em middlewares modernos para injetar comportamentos (auditoria, segurança, transformações, roteamento) sem alterar o núcleo do sistema ou o código-fonte da aplicação de forma invasiva. As opções A, B, D e E restringem incorretamente a função a tarefas isoladas ou referem componentes de hardware.",
+    "explicacao": "Os interceptadores são mecanismos fundamentais em middlewares modernos para injetar comportamentos (auditoria, segurança, transformações, roteamento) sem alterar o núcleo do sistema ou o código-fonte da aplicação de forma invasiva. As demais opções restringem incorretamente a função a tarefas isoladas ou referem componentes de hardware.",
     "tipo": "multipla_escolha",
     "anulada": false,
     "fonte": "Avaliação de Sistemas Distribuídos"
   },
   {
     "id": 6,
-    "titulo": "Questão 6 · Operações de Sockets no Servidor TCP",
-    "tema": "Comunicação entre Processos e Sockets",
+    "tema": "Comunicação por Sockets no Servidor TCP",
     "enunciado": "No contexto de comunicação orientada a conexão (connection-oriented communication), qual é a sequência correta de operações típicas do lado do servidor ao utilizar sockets, conforme os primitivos apresentados no capítulo?",
     "alternativas": [
       {
@@ -2727,8 +2721,7 @@ window.QUESTOES_PROVA_DATA = [
   },
   {
     "id": 7,
-    "titulo": "Questão 7 · Associação de Interceptadores e Mecanismos",
-    "tema": "Middleware e Padrões de Projeto",
+    "tema": "Associação de Interceptadores e Padrões",
     "enunciado": "Em middleware, interceptadores (interceptors) permitem adaptar o comportamento do sistema sem alterar a aplicação. Associe cada objetivo (coluna da esquerda) ao mecanismo/estilo que melhor o atende (coluna da direita):\n\n**Coluna da Esquerda (Objetivo):**\n- I. Desacoplar emissor e receptor de mensagens, de modo que o emissor não precise conhecer a identidade dos receptores.\n- II. Tornar a replicação de um objeto transparente para o cliente.\n- III. Ocultar diferenças de representação de dados entre máquinas heterogêneas.\n- IV. Adaptar dinamicamente o comportamento do middleware (por exemplo, segurança ou balanceamento) sem modificar a aplicação.\n\n**Coluna da Direita (Mecanismo):**\n- (P) Interceptador de requisição que intercepta a chamada, a replica e a envia a várias réplicas, ocultando a replicação do cliente.\n- (Q) Interceptador de mensagem que realiza o empacotamento (marshalling) e a conversão de formatos de dados, ocultando diferenças de representação.\n- (R) Arquitetura baseada em eventos (publish/subscribe), com comunicação referencialmente desacoplada.\n- (S) Middleware adaptativo/reflexivo, usando interceptadores e componentes substituíveis em tempo de execução.\n\nAssinale a alternativa com a associação correta:",
     "alternativas": [
       {
@@ -2753,7 +2746,7 @@ window.QUESTOES_PROVA_DATA = [
       }
     ],
     "gabarito": "B",
-    "explicacao": "Associação correta: I → R, II → P, III → Q, IV → S.\n\n- **I → R:** A publicação/subscrição garante o desacoplamento referencial e espacial entre produtores e consumidores.\n- **II → P:** Um interceptador de requisição replica a invocação para os membros de um grupo sem que o cliente tenha conhecimento da existência de múltiplas réplicas.\n- **III → Q:** A conversão de dados e marshalling resolve diferenças de endianness e representação de tipos de dados.\n- **IV → S:** O paradigma de middleware adaptativo e reflexivo foca-se na reconfiguração dinâmica de componentes e interceptadores durante a execução.",
+    "explicacao": "A associação correta é I-R, II-P, III-Q, IV-S:\n\n- **I → R:** A publicação/subscrição garante o desacoplamento referencial e espacial entre produtores e consumidores.\n- **II → P:** Um interceptador de requisição replica a invocação para os membros de um grupo sem que o cliente tenha conhecimento da existência de múltiplas réplicas.\n- **III → Q:** A conversão de dados e marshalling resolve diferenças de endianness e representação de tipos de dados.\n- **IV → S:** O paradigma de middleware adaptativo e reflexivo foca-se na reconfiguração dinâmica de componentes e interceptadores durante a execução.",
     "tipo": "multipla_escolha",
     "anulada": false,
     "fonte": "Avaliação de Sistemas Distribuídos"
