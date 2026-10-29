@@ -187,6 +187,50 @@ body {
   border: 1px solid var(--border-color);
 }
 
+/* Mode Switcher in Header */
+.mode-switcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background-color: var(--primary-light);
+  color: var(--primary-text);
+  border: 1.5px solid var(--primary);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-switcher-btn:hover {
+  background-color: var(--primary);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+}
+
+.mode-pill-badge {
+  background-color: var(--primary);
+  color: #ffffff;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.mode-switcher-btn:hover .mode-pill-badge {
+  background-color: #ffffff;
+  color: var(--primary);
+}
+
+.mode-switch-arrow {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
 .pulse-dot {
   width: 8px;
   height: 8px;
@@ -1230,6 +1274,129 @@ body {
   display: flex;
   justify-content: center;
   gap: 0.85rem;
+}
+
+/* Modal Mode Selector */
+.modal-mode-box {
+  max-width: 680px;
+  text-align: left;
+}
+
+.modal-mode-box .modal-icon {
+  text-align: center;
+}
+
+.modal-mode-box .modal-title {
+  text-align: center;
+}
+
+.modal-mode-box .modal-msg {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.mode-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .mode-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mode-card {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.mode-card:hover, .mode-card:focus-visible {
+  border-color: var(--primary);
+  background-color: var(--bg-subtle);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  outline: none;
+}
+
+.mode-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mode-card-icon {
+  font-size: 1.85rem;
+  line-height: 1;
+}
+
+.badge-accent {
+  background-color: var(--primary-light);
+  color: var(--primary-text);
+  border: 1px solid var(--primary);
+}
+
+.mode-card-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.mode-card-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.mode-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.82rem;
+}
+
+.mode-card-tag {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.mode-card-arrow {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.modal-footer-note {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 1rem;
+}
+
+/* Sidebar Info Box for Mode Notice */
+.sidebar-info-box {
+  background-color: var(--info-bg);
+  border: 1px solid var(--info-border);
+  color: var(--info-text);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin-bottom: 1rem;
 }
 
 /* Utilities */

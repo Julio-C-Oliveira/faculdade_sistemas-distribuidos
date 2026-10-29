@@ -1,5 +1,5 @@
 /**
- * Simulado de Sistemas Distribuídos — ENADE & POSCOMP
+ * Simulado de Sistemas Distribuídos — ENADE, POSCOMP e Modo Prova
  * Lógica principal da aplicação web
  */
 
@@ -7,12 +7,20 @@
   'use strict';
 
   // Chaves de armazenamento local
-  const STORAGE_KEY_ANSWERS = 'simulado_sd_answers_v1';
+  const STORAGE_KEY_MODE = 'simulado_sd_mode_v2';
+  const STORAGE_KEY_PROVA_ANSWERS = 'simulado_sd_prova_answers_v2';
+  const STORAGE_KEY_PROVA_ORDER = 'simulado_sd_prova_order_v2';
+  const STORAGE_KEY_GERAL_ANSWERS = 'simulado_sd_answers_v1';
   const STORAGE_KEY_DISCURSIVE = 'simulado_sd_discursive_v1';
   const STORAGE_KEY_THEME = 'simulado_sd_theme_v1';
 
+  // Bases de dados
+  let geralQuestions = [];
+  let provaQuestionsRaw = [];
+
   // Estado da aplicação
-  let allQuestions = [];
+  let currentMode = 'prova'; // 'prova' ou 'geral'
+  let allQuestions = []; // Conjunto ativo do modo selecionado
   let filteredQuestions = [];
   let activeQuestions = [];
   let currentIndex = 0;
@@ -27,14 +35,19 @@
   const retryBanner = document.getElementById('retry-mode-banner');
   const retryCountSpan = document.getElementById('retry-count');
 
-  // Header
+  // Header Elements
+  const headerLogoSubtitle = document.getElementById('header-logo-subtitle');
+  const btnModeSwitch = document.getElementById('btn-mode-switch');
+  const headerModeIcon = document.getElementById('header-mode-icon');
+  const headerModeText = document.getElementById('header-mode-text');
+  const headerModeBadge = document.getElementById('header-mode-badge');
   const answeredCountEl = document.getElementById('answered-count');
   const totalEvaluableEl = document.getElementById('total-evaluable-count');
   const themeToggleBtn = document.getElementById('theme-toggle');
   const themeIconEl = document.getElementById('theme-icon');
   const restartHeaderBtn = document.getElementById('btn-restart-header');
 
-  // Question Card
+  // Question Card Elements
   const badgeExam = document.getElementById('badge-exam');
   const badgeTheme = document.getElementById('badge-theme');
   const badgeCorrelata = document.getElementById('badge-correlata');
@@ -59,10 +72,15 @@
   const btnNext = document.getElementById('btn-next');
   const btnClear = document.getElementById('btn-clear');
   const btnFinish = document.getElementById('btn-finish');
+  const btnFinishText = document.getElementById('btn-finish-text');
   const btnSidebarFinish = document.getElementById('btn-sidebar-finish');
+  const sidebarFinishText = document.getElementById('sidebar-finish-text');
   const btnExitRetry = document.getElementById('btn-exit-retry');
 
-  // Sidebar
+  // Sidebar Elements
+  const sidebarTitle = document.getElementById('sidebar-title');
+  const sidebarFiltersContainer = document.getElementById('sidebar-filters-container');
+  const sidebarProvaNotice = document.getElementById('sidebar-prova-notice');
   const filterExam = document.getElementById('filter-exam');
   const filterTheme = document.getElementById('filter-theme');
   const questionsGrid = document.getElementById('questions-grid');
@@ -74,15 +92,24 @@
   const btnModalCancel = document.getElementById('btn-modal-cancel');
   const btnModalConfirm = document.getElementById('btn-modal-confirm');
 
+  // Modal Mode Select
+  const modalModeSelect = document.getElementById('modal-mode-select');
+  const cardSelectProva = document.getElementById('card-select-prova');
+  const cardSelectGeral = document.getElementById('card-select-geral');
+
   // Results Elements
+  const resultTitle = document.getElementById('result-title');
+  const resultSubtitle = document.getElementById('result-subtitle');
   const finalPercentage = document.getElementById('final-percentage');
   const finalScoreFraction = document.getElementById('final-score-fraction');
   const finalCorrectCount = document.getElementById('final-correct-count');
   const finalWrongCount = document.getElementById('final-wrong-count');
   const finalEmptyCount = document.getElementById('final-empty-count');
   const retryErrorBadge = document.getElementById('retry-error-badge');
+  const themeBreakdownCard = document.getElementById('theme-breakdown-card');
   const themeProgressList = document.getElementById('theme-progress-list');
   const reviewList = document.getElementById('review-list');
+  const btnReshuffleTest = document.getElementById('btn-reshuffle-test');
   const btnRetryErrors = document.getElementById('btn-retry-errors');
   const btnRestartAll = document.getElementById('btn-restart-all');
   const btnBackToTest = document.getElementById('btn-back-to-test');
@@ -92,34 +119,218 @@
   const filterCorrectCount = document.getElementById('filter-correct-count');
 
   // --------------------------------------------------------------------------
+  // Fisher-Yates Shuffle
+  // --------------------------------------------------------------------------
+
+  function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // --------------------------------------------------------------------------
   // Inicialização
   // --------------------------------------------------------------------------
 
   async function init() {
     initTheme();
-    loadStoredAnswers();
 
+    // Carregar bases de dados
+    await loadDataSources();
+
+    // Determinar modo ativo (Modo Prova é padrão ou lido do storage)
+    const storedMode = localStorage.getItem(STORAGE_KEY_MODE);
+
+    setupEventListeners();
+
+    if (!storedMode) {
+      // Primeira visita: abre o modal de boas-vindas para seleção de modo
+      setMode('prova', true);
+      showModeSelectModal();
+    } else {
+      setMode(storedMode, false);
+    }
+  }
+
+  async function loadDataSources() {
+    // 1. Carrega Simulado Geral (67 questões)
     try {
       if (window.QUESTOES_DATA && Array.isArray(window.QUESTOES_DATA) && window.QUESTOES_DATA.length > 0) {
-        allQuestions = window.QUESTOES_DATA;
+        geralQuestions = window.QUESTOES_DATA;
       } else {
         const resp = await fetch('questoes.json');
         if (!resp.ok) throw new Error('Falha ao carregar questoes.json');
-        allQuestions = await resp.json();
+        geralQuestions = await resp.json();
       }
     } catch (err) {
-      console.error('Erro ao carregar questões:', err);
-      qStatement.innerHTML = `<div class="empty-review-msg">Erro ao carregar a base de questões (${err.message}). Certifique-se de executar via servidor local ou abrir com o arquivo questoes-data.js presente.</div>`;
-      return;
+      console.warn('Erro ao carregar questoes.json:', err);
     }
 
-    filteredQuestions = [...allQuestions];
-    activeQuestions = [...filteredQuestions];
+    // 2. Carrega Modo Prova (7 questões)
+    try {
+      if (window.QUESTOES_PROVA_DATA && Array.isArray(window.QUESTOES_PROVA_DATA) && window.QUESTOES_PROVA_DATA.length > 0) {
+        provaQuestionsRaw = window.QUESTOES_PROVA_DATA;
+      } else {
+        const resp = await fetch('questoes_prova.json');
+        if (!resp.ok) throw new Error('Falha ao carregar questoes_prova.json');
+        provaQuestionsRaw = await resp.json();
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar questoes_prova.json:', err);
+    }
+  }
 
-    setupEventListeners();
+  // --------------------------------------------------------------------------
+  // Seleção e Troca de Modo
+  // --------------------------------------------------------------------------
+
+  function showModeSelectModal() {
+    modalModeSelect.style.display = 'flex';
+  }
+
+  function hideModeSelectModal() {
+    modalModeSelect.style.display = 'none';
+  }
+
+  function setMode(mode, reshuffle = false) {
+    currentMode = mode;
+    localStorage.setItem(STORAGE_KEY_MODE, mode);
+    hideModeSelectModal();
+
+    isRetryMode = false;
+    retryBanner.style.display = 'none';
+
+    if (mode === 'prova') {
+      // UI Header para Modo Prova
+      headerLogoSubtitle.textContent = 'Modo Prova · 7 Questões Embaralhadas';
+      headerModeIcon.textContent = '🎯';
+      headerModeText.textContent = 'Modo Prova';
+      headerModeBadge.textContent = '7 Qs';
+      btnModeSwitch.title = 'Modo atual: Prova (7 Qs). Clique para alternar para o Simulado Geral.';
+
+      btnFinishText.textContent = 'Finalizar Prova 🏁';
+      sidebarFinishText.textContent = 'Concluir Prova 🏁';
+      sidebarTitle.textContent = 'Mapa da Prova';
+
+      sidebarFiltersContainer.style.display = 'none';
+      sidebarProvaNotice.style.display = 'block';
+      themeBreakdownCard.style.display = 'none';
+      btnReshuffleTest.style.display = 'inline-flex';
+
+      resultTitle.textContent = 'Resultado da Prova';
+      resultSubtitle.textContent = 'Desempenho nas 7 questões avaliadas da disciplina';
+
+      // Gerenciar embaralhamento
+      setupProvaQuestions(reshuffle);
+      loadStoredAnswersForCurrentMode();
+
+    } else {
+      // UI Header para Simulado Geral
+      headerLogoSubtitle.textContent = 'Simulado Geral · ENADE & POSCOMP · 67 Questões';
+      headerModeIcon.textContent = '🌐';
+      headerModeText.textContent = 'Simulado Geral';
+      headerModeBadge.textContent = '67 Qs';
+      btnModeSwitch.title = 'Modo atual: Simulado Geral (67 Qs). Clique para alternar para o Modo Prova.';
+
+      btnFinishText.textContent = 'Finalizar Simulado 🏁';
+      sidebarFinishText.textContent = 'Concluir Simulado 🏁';
+      sidebarTitle.textContent = 'Mapa de Questões';
+
+      sidebarFiltersContainer.style.display = 'block';
+      sidebarProvaNotice.style.display = 'none';
+      themeBreakdownCard.style.display = 'block';
+      btnReshuffleTest.style.display = 'none';
+
+      resultTitle.textContent = 'Resultado do Simulado Geral';
+      resultSubtitle.textContent = 'Confira seu desempenho nas questões válidas de Sistemas Distribuídos';
+
+      allQuestions = [...geralQuestions];
+      filteredQuestions = [...allQuestions];
+      activeQuestions = [...filteredQuestions];
+      currentIndex = 0;
+
+      filterExam.value = 'all';
+      filterTheme.value = 'all';
+
+      loadStoredAnswersForCurrentMode();
+    }
+
+    // Retorna para a tela de teste
+    resultView.classList.remove('active');
+    quizView.classList.add('active');
+
     updateHeaderProgress();
     renderSidebarGrid();
     renderCurrentQuestion();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setupProvaQuestions(forceReshuffle) {
+    if (provaQuestionsRaw.length === 0) return;
+
+    let ordered = [];
+    const savedOrderJson = localStorage.getItem(STORAGE_KEY_PROVA_ORDER);
+
+    if (!forceReshuffle && savedOrderJson) {
+      try {
+        const savedIds = JSON.parse(savedOrderJson);
+        const map = new Map(provaQuestionsRaw.map(q => [q.id, q]));
+        ordered = savedIds.map(id => map.get(id)).filter(Boolean);
+      } catch (e) {
+        ordered = [];
+      }
+    }
+
+    if (ordered.length !== provaQuestionsRaw.length) {
+      // Embaralhar usando Fisher-Yates
+      ordered = shuffleArray(provaQuestionsRaw);
+      const newIds = ordered.map(q => q.id);
+      localStorage.setItem(STORAGE_KEY_PROVA_ORDER, JSON.stringify(newIds));
+    }
+
+    allQuestions = ordered;
+    filteredQuestions = [...allQuestions];
+    activeQuestions = [...filteredQuestions];
+    currentIndex = 0;
+  }
+
+  // --------------------------------------------------------------------------
+  // Persistência Local por Modo
+  // --------------------------------------------------------------------------
+
+  function loadStoredAnswersForCurrentMode() {
+    try {
+      if (currentMode === 'prova') {
+        const saved = localStorage.getItem(STORAGE_KEY_PROVA_ANSWERS);
+        userAnswers = saved ? JSON.parse(saved) : {};
+        discursiveAnswers = {};
+      } else {
+        const saved = localStorage.getItem(STORAGE_KEY_GERAL_ANSWERS);
+        userAnswers = saved ? JSON.parse(saved) : {};
+        const savedDisc = localStorage.getItem(STORAGE_KEY_DISCURSIVE);
+        discursiveAnswers = savedDisc ? JSON.parse(savedDisc) : {};
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar respostas:', e);
+      userAnswers = {};
+      discursiveAnswers = {};
+    }
+  }
+
+  function saveCurrentAnswers() {
+    try {
+      if (currentMode === 'prova') {
+        localStorage.setItem(STORAGE_KEY_PROVA_ANSWERS, JSON.stringify(userAnswers));
+      } else {
+        localStorage.setItem(STORAGE_KEY_GERAL_ANSWERS, JSON.stringify(userAnswers));
+        localStorage.setItem(STORAGE_KEY_DISCURSIVE, JSON.stringify(discursiveAnswers));
+      }
+    } catch (e) {
+      console.warn('Erro ao salvar respostas:', e);
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -144,33 +355,7 @@
   }
 
   // --------------------------------------------------------------------------
-  // Persistência Local
-  // --------------------------------------------------------------------------
-
-  function loadStoredAnswers() {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_ANSWERS);
-      if (saved) userAnswers = JSON.parse(saved);
-      const savedDiscursive = localStorage.getItem(STORAGE_KEY_DISCURSIVE);
-      if (savedDiscursive) discursiveAnswers = JSON.parse(savedDiscursive);
-    } catch (e) {
-      console.warn('Erro ao carregar respostas salvas:', e);
-      userAnswers = {};
-      discursiveAnswers = {};
-    }
-  }
-
-  function saveAnswers() {
-    try {
-      localStorage.setItem(STORAGE_KEY_ANSWERS, JSON.stringify(userAnswers));
-      localStorage.setItem(STORAGE_KEY_DISCURSIVE, JSON.stringify(discursiveAnswers));
-    } catch (e) {
-      console.warn('Erro ao salvar respostas:', e);
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // Markdown Simplificado
+  // Renderização Markdown
   // --------------------------------------------------------------------------
 
   function renderMarkdown(md) {
@@ -186,6 +371,8 @@
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     // Código `code`
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Setas e símbolos comuns
+    html = html.replace(/\\rightarrow/g, '→');
 
     // Listas e quebras de linha
     const lines = html.split('\n');
@@ -208,7 +395,6 @@
           inList = false;
         }
         if (trimmed.length > 0) {
-          // Destacar algarismos romanos ou itens i., ii., I., II.
           const romanMatch = trimmed.match(/^([I|V|X|i|v|x]+\.|\(\s*\))\s*(.*)$/);
           if (romanMatch) {
             output.push(`<p><strong>${romanMatch[1]}</strong> ${romanMatch[2]}</p>`);
@@ -229,8 +415,8 @@
 
   function renderCurrentQuestion() {
     if (activeQuestions.length === 0) {
-      qTitle.textContent = 'Nenhuma questão encontrada com os filtros selecionados';
-      qStatement.innerHTML = '<p class="empty-review-msg">Ajuste os filtros de Banca ou Tema na barra lateral para carregar questões.</p>';
+      qTitle.textContent = 'Nenhuma questão encontrada';
+      qStatement.innerHTML = '<p class="empty-review-msg">Ajuste os filtros ou selecione outro modo.</p>';
       alternativesArea.innerHTML = '';
       qDiagramContainer.style.display = 'none';
       discursiveArea.style.display = 'none';
@@ -242,10 +428,16 @@
 
     const q = activeQuestions[currentIndex];
 
-    // Meta Tags
-    badgeExam.textContent = `${q.exame} ${q.ano || ''}`.trim();
-    badgeTheme.textContent = `Tema ${q.tema_id}`;
-    badgeTheme.title = q.tema;
+    // Tags
+    if (currentMode === 'prova') {
+      badgeExam.textContent = 'PROVA';
+      badgeTheme.textContent = 'Sistemas Distribuídos';
+      badgeTheme.title = q.tema;
+    } else {
+      badgeExam.textContent = `${q.exame} ${q.ano || ''}`.trim();
+      badgeTheme.textContent = `Tema ${q.tema_id}`;
+      badgeTheme.title = q.tema;
+    }
 
     if (q.correlata) {
       badgeCorrelata.style.display = 'inline-block';
@@ -267,9 +459,9 @@
     totalQNum.textContent = activeQuestions.length;
     qTitle.textContent = q.titulo;
     qStatement.innerHTML = renderMarkdown(q.enunciado);
-    qSource.textContent = `Fonte oficial: ${q.fonte}`;
+    qSource.textContent = `Fonte: ${q.fonte}`;
 
-    // Diagrama Espaço-Tempo em SVG (para Q33 e Q38)
+    // Diagrama SVG
     if (q.svg_diagrama) {
       qDiagramContainer.innerHTML = q.svg_diagrama;
       qDiagramContainer.style.display = 'block';
@@ -278,7 +470,7 @@
       qDiagramContainer.style.display = 'none';
     }
 
-    // Tratamento de Questão Discursiva (Q58)
+    // Discursiva
     if (q.tipo === 'discursiva') {
       alternativesArea.style.display = 'none';
       discursiveArea.style.display = 'block';
@@ -293,7 +485,7 @@
       renderAlternatives(q);
     }
 
-    // Atualizar estado dos botões de navegação
+    // Navegação
     btnPrev.disabled = (currentIndex === 0);
     btnNext.disabled = (currentIndex === activeQuestions.length - 1);
 
@@ -334,12 +526,11 @@
 
   function selectAlternative(questionId, letter) {
     if (userAnswers[questionId] === letter) {
-      // Desmarcar se clicar na mesma
       delete userAnswers[questionId];
     } else {
       userAnswers[questionId] = letter;
     }
-    saveAnswers();
+    saveCurrentAnswers();
     renderCurrentQuestion();
     renderSidebarGrid();
   }
@@ -349,10 +540,10 @@
     if (!discursiveAnswers[q.id]) discursiveAnswers[q.id] = {};
     discursiveAnswers[q.id].draft = discursiveInput.value;
     discursiveAnswers[q.id].status = result;
-    saveAnswers();
+    saveCurrentAnswers();
     renderSidebarGrid();
     updateHeaderProgress();
-    alert(result === 'acertou' ? 'Marcado como compreendido com sucesso!' : 'Marcado para reforço teórico!');
+    alert(result === 'acertou' ? 'Marcado como compreendido com sucesso!' : 'Marcado para reforço!');
   };
 
   // --------------------------------------------------------------------------
@@ -361,14 +552,13 @@
 
   function renderSidebarGrid() {
     questionsGrid.innerHTML = '';
-
     let answeredTotal = 0;
 
     activeQuestions.forEach((q, idx) => {
       const btn = document.createElement('button');
       btn.className = 'grid-btn';
-      btn.textContent = q.id;
-      btn.title = `Q${q.id}: ${q.titulo}`;
+      btn.textContent = (idx + 1);
+      btn.title = `Questão ${idx + 1}: ${q.titulo}`;
 
       const isAnswered = q.tipo === 'discursiva'
         ? (discursiveAnswers[q.id] && discursiveAnswers[q.id].status)
@@ -406,19 +596,25 @@
   }
 
   function updateHeaderProgress() {
-    // Avalia apenas as 65 objetivas válidas para o placar oficial
-    const evaluable = allQuestions.filter(q => q.tipo === 'multipla_escolha' && !q.anulada);
-    const answeredCount = evaluable.filter(q => userAnswers[q.id] !== undefined).length;
+    let evaluable = [];
+    if (currentMode === 'prova') {
+      evaluable = allQuestions;
+    } else {
+      evaluable = allQuestions.filter(q => q.tipo === 'multipla_escolha' && !q.anulada);
+    }
 
+    const answeredCount = evaluable.filter(q => userAnswers[q.id] !== undefined).length;
     answeredCountEl.textContent = answeredCount;
     totalEvaluableEl.textContent = evaluable.length;
   }
 
   // --------------------------------------------------------------------------
-  // Filtros de Banca e Tema
+  // Filtros (Apenas no Simulado Geral)
   // --------------------------------------------------------------------------
 
   function applyFilters() {
+    if (currentMode === 'prova') return;
+
     const examVal = filterExam.value;
     const themeVal = filterTheme.value;
 
@@ -435,17 +631,23 @@
   }
 
   // --------------------------------------------------------------------------
-  // Finalização e Cálculo do Resultado
+  // Finalização e Cálculo de Resultados
   // --------------------------------------------------------------------------
 
   function showFinishConfirmation() {
-    const evaluable = allQuestions.filter(q => q.tipo === 'multipla_escolha' && !q.anulada);
+    let evaluable = [];
+    if (currentMode === 'prova') {
+      evaluable = allQuestions;
+    } else {
+      evaluable = allQuestions.filter(q => q.tipo === 'multipla_escolha' && !q.anulada);
+    }
+
     const unanswered = evaluable.filter(q => userAnswers[q.id] === undefined).length;
 
     if (unanswered > 0) {
-      modalFinishMsg.textContent = `Você ainda possui ${unanswered} questão(ões) em branco dentre as ${evaluable.length} avaliadas. Deseja realmente finalizar e ver seu gabarito comentado?`;
+      modalFinishMsg.textContent = `Você ainda possui ${unanswered} questão(ões) em branco dentre as ${evaluable.length} avaliadas. Deseja realmente finalizar e ver o gabarito comentado?`;
     } else {
-      modalFinishMsg.textContent = `Parabéns! Você respondeu todas as ${evaluable.length} questões objetivas. Pronto para conferir seu resultado e a revisão completa?`;
+      modalFinishMsg.textContent = `Parabéns! Você respondeu todas as ${evaluable.length} questões. Deseja conferir agora a sua nota e a revisão comentada?`;
     }
     modalFinish.style.display = 'flex';
   }
@@ -453,28 +655,37 @@
   function calculateAndDisplayResults() {
     modalFinish.style.display = 'none';
 
-    // 65 questões válidas
-    const evaluable = allQuestions.filter(q => q.tipo === 'multipla_escolha' && !q.anulada);
+    let evaluable = [];
+    if (currentMode === 'prova') {
+      evaluable = allQuestions;
+    } else {
+      evaluable = allQuestions.filter(q => q.tipo === 'multipla_escolha' && !q.anulada);
+    }
+
     let correctCount = 0;
     let wrongCount = 0;
     let emptyCount = 0;
 
     const themeStats = {};
-    for (let t = 1; t <= 8; t++) {
-      themeStats[t] = { total: 0, correct: 0, name: '' };
+    if (currentMode === 'geral') {
+      for (let t = 1; t <= 8; t++) {
+        themeStats[t] = { total: 0, correct: 0, name: '' };
+      }
     }
 
     evaluable.forEach(q => {
-      const tid = q.tema_id;
-      themeStats[tid].total++;
-      themeStats[tid].name = q.tema;
+      if (currentMode === 'geral') {
+        const tid = q.tema_id;
+        themeStats[tid].total++;
+        themeStats[tid].name = q.tema;
+      }
 
       const userChoice = userAnswers[q.id];
       if (!userChoice) {
         emptyCount++;
       } else if (userChoice === q.gabarito) {
         correctCount++;
-        themeStats[tid].correct++;
+        if (currentMode === 'geral') themeStats[q.tema_id].correct++;
       } else {
         wrongCount++;
       }
@@ -489,20 +700,22 @@
 
     retryErrorBadge.textContent = wrongCount;
 
-    // Renderizar gráfico por Tema
-    renderThemeProgress(themeStats);
+    if (currentMode === 'geral') {
+      renderThemeProgress(themeStats);
+      themeBreakdownCard.style.display = 'block';
+    } else {
+      themeBreakdownCard.style.display = 'none';
+    }
 
-    // Contadores dos botões de filtro de revisão
+    // Filtros de revisão
     filterWrongCount.textContent = wrongCount;
     filterAllCount.textContent = allQuestions.length;
     filterCorrectCount.textContent = correctCount;
 
-    // Renderizar lista de revisão
     currentReviewFilter = wrongCount > 0 ? 'wrong' : 'all';
     updateReviewFilterButtons();
     renderReviewList();
 
-    // Mudar para tela de resultados
     quizView.classList.remove('active');
     resultView.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -513,7 +726,7 @@
 
     for (let tid = 1; tid <= 8; tid++) {
       const item = themeStats[tid];
-      if (item.total === 0) continue;
+      if (!item || item.total === 0) continue;
 
       const pct = Math.round((item.correct / item.total) * 100);
       const row = document.createElement('div');
@@ -533,7 +746,7 @@
   }
 
   // --------------------------------------------------------------------------
-  // Revisão Detalhada com Explicações Teóricas
+  // Revisão Detalhada com Justificativas
   // --------------------------------------------------------------------------
 
   function renderReviewList() {
@@ -622,11 +835,14 @@
         diagramHtml = `<div class="q-diagram-container">${q.svg_diagrama}</div>`;
       }
 
+      const metaBadgeExam = currentMode === 'prova' ? 'PROVA' : `${q.exame} ${q.ano || ''}`;
+      const metaBadgeTheme = currentMode === 'prova' ? 'Sistemas Distribuídos' : `Tema ${q.tema_id}`;
+
       card.innerHTML = `
         <div class="card-meta-bar">
           <div class="meta-tags">
-            <span class="badge badge-exam">${q.exame} ${q.ano || ''}</span>
-            <span class="badge badge-theme">Tema ${q.tema_id}</span>
+            <span class="badge badge-exam">${metaBadgeExam}</span>
+            <span class="badge badge-theme">${metaBadgeTheme}</span>
             ${q.correlata ? '<span class="badge badge-correlata">Correlata</span>' : ''}
             ${statusBadge}
           </div>
@@ -639,8 +855,8 @@
         ${optionsHtml}
 
         <div class="explanation-card">
-          <div class="explanation-title">💡 Explicação Teórica:</div>
-          <div class="explanation-text">${q.explicacao}</div>
+          <div class="explanation-title">💡 Justificativa Fundamentada:</div>
+          <div class="explanation-text">${renderMarkdown(q.explicacao)}</div>
         </div>
 
         <div class="card-source-bar">Fonte: ${q.fonte}</div>
@@ -662,7 +878,7 @@
   }
 
   // --------------------------------------------------------------------------
-  // Modo Focado: Refazer Apenas as que Errei
+  // Refazer Erradas / Nova Tentativa com Reembaralhamento
   // --------------------------------------------------------------------------
 
   function startRetryErrorsMode() {
@@ -673,15 +889,14 @@
     });
 
     if (wrongQuestions.length === 0) {
-      alert('Você não possui questões erradas no momento para refazer!');
+      alert('Você não possui questões erradas para refazer!');
       return;
     }
 
-    // Limpa as respostas anteriores apenas das questões erradas
     wrongQuestions.forEach(q => {
       delete userAnswers[q.id];
     });
-    saveAnswers();
+    saveCurrentAnswers();
 
     isRetryMode = true;
     activeQuestions = [...wrongQuestions];
@@ -690,7 +905,6 @@
     retryCountSpan.textContent = activeQuestions.length;
     retryBanner.style.display = 'flex';
 
-    // Voltar para a visualização do Simulado
     resultView.classList.remove('active');
     quizView.classList.add('active');
 
@@ -708,26 +922,40 @@
     renderCurrentQuestion();
   }
 
-  // --------------------------------------------------------------------------
-  // Reiniciar Tudo
-  // --------------------------------------------------------------------------
-
-  function resetAll() {
-    if (confirm('Tem certeza que deseja reiniciar todo o simulado e apagar todas as respostas salvas?')) {
+  function reshuffleAndRestartProva() {
+    if (confirm('Deseja iniciar uma nova tentativa com as 7 questões em uma nova ordem embaralhada?')) {
       userAnswers = {};
-      discursiveAnswers = {};
-      localStorage.removeItem(STORAGE_KEY_ANSWERS);
-      localStorage.removeItem(STORAGE_KEY_DISCURSIVE);
+      localStorage.removeItem(STORAGE_KEY_PROVA_ANSWERS);
+      setupProvaQuestions(true); // Forçar novo embaralhamento
+      saveCurrentAnswers();
+
+      resultView.classList.remove('active');
+      quizView.classList.add('active');
+
+      renderSidebarGrid();
+      renderCurrentQuestion();
+      updateHeaderProgress();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function resetCurrentMode() {
+    const label = currentMode === 'prova' ? 'a prova atual' : 'o simulado completo';
+    if (confirm(`Tem certeza que deseja reiniciar ${label} e limpar suas respostas?`)) {
+      userAnswers = {};
+      if (currentMode === 'prova') {
+        localStorage.removeItem(STORAGE_KEY_PROVA_ANSWERS);
+        setupProvaQuestions(true); // Reembaralhar
+      } else {
+        discursiveAnswers = {};
+        localStorage.removeItem(STORAGE_KEY_GERAL_ANSWERS);
+        localStorage.removeItem(STORAGE_KEY_DISCURSIVE);
+        activeQuestions = [...filteredQuestions];
+      }
 
       isRetryMode = false;
       retryBanner.style.display = 'none';
-
-      filteredQuestions = [...allQuestions];
-      activeQuestions = [...filteredQuestions];
       currentIndex = 0;
-
-      filterExam.value = 'all';
-      filterTheme.value = 'all';
 
       resultView.classList.remove('active');
       quizView.classList.add('active');
@@ -746,6 +974,27 @@
   function setupEventListeners() {
     // Tema
     themeToggleBtn.addEventListener('click', toggleTheme);
+
+    // Botão de Trocar Modo
+    btnModeSwitch.addEventListener('click', showModeSelectModal);
+
+    // Cards do Modal de Seleção de Modo
+    cardSelectProva.addEventListener('click', () => setMode('prova', false));
+    cardSelectGeral.addEventListener('click', () => setMode('geral', false));
+
+    cardSelectProva.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setMode('prova', false);
+      }
+    });
+
+    cardSelectGeral.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setMode('geral', false);
+      }
+    });
 
     // Navegação
     btnPrev.addEventListener('click', () => {
@@ -766,7 +1015,7 @@
       const q = activeQuestions[currentIndex];
       if (q && userAnswers[q.id]) {
         delete userAnswers[q.id];
-        saveAnswers();
+        saveCurrentAnswers();
         renderCurrentQuestion();
         renderSidebarGrid();
       }
@@ -774,19 +1023,20 @@
 
     btnFinish.addEventListener('click', showFinishConfirmation);
     btnSidebarFinish.addEventListener('click', showFinishConfirmation);
-    restartHeaderBtn.addEventListener('click', resetAll);
-    btnRestartAll.addEventListener('click', resetAll);
+    restartHeaderBtn.addEventListener('click', resetCurrentMode);
+    btnRestartAll.addEventListener('click', resetCurrentMode);
 
-    // Modal
+    // Modal Finish
     btnModalCancel.addEventListener('click', () => {
       modalFinish.style.display = 'none';
     });
 
     btnModalConfirm.addEventListener('click', calculateAndDisplayResults);
 
-    // Retry Errors
+    // Retry / Reshuffle
     btnRetryErrors.addEventListener('click', startRetryErrorsMode);
     btnExitRetry.addEventListener('click', exitRetryMode);
+    btnReshuffleTest.addEventListener('click', reshuffleAndRestartProva);
 
     btnBackToTest.addEventListener('click', () => {
       resultView.classList.remove('active');
@@ -808,10 +1058,10 @@
       const q = activeQuestions[currentIndex];
       if (!discursiveAnswers[q.id]) discursiveAnswers[q.id] = {};
       discursiveAnswers[q.id].draft = e.target.value;
-      saveAnswers();
+      saveCurrentAnswers();
     });
 
-    // Botões de filtro da revisão
+    // Filtros de Revisão
     document.querySelectorAll('.review-filter-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         currentReviewFilter = e.currentTarget.getAttribute('data-filter');
@@ -822,7 +1072,6 @@
 
     // Atalhos de teclado
     document.addEventListener('keydown', (e) => {
-      // Ignorar se estiver digitando em campo de texto
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
 
       if (quizView.classList.contains('active')) {
@@ -837,7 +1086,6 @@
             renderCurrentQuestion();
           }
         } else {
-          // Teclas A, B, C, D, E para marcar alternativas
           const keyUpper = e.key.toUpperCase();
           if (['A', 'B', 'C', 'D', 'E'].includes(keyUpper)) {
             const q = activeQuestions[currentIndex];

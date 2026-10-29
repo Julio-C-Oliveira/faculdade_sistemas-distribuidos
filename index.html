@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulado de Sistemas Distribuídos — ENADE & POSCOMP</title>
-  <meta name="description" content="Simulado interativo com 67 questões de Sistemas Distribuídos do POSCOMP e ENADE, com revisão comentada e estatísticas por tema.">
+  <title>Simulado & Prova de Sistemas Distribuídos</title>
+  <meta name="description" content="Ambiente de estudos para Sistemas Distribuídos com Modo Prova (7 questões essenciais embaralhadas) e Simulado Geral com 67 questões de POSCOMP e ENADE.">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,21 +19,32 @@
         <div class="logo-icon">🌐</div>
         <div>
           <h1 class="logo-title">Sistemas Distribuídos</h1>
-          <p class="logo-subtitle">Simulado ENADE & POSCOMP · 67 Questões</p>
+          <p class="logo-subtitle" id="header-logo-subtitle">Modo Prova · 7 Questões Embaralhadas</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <div class="progress-pill" id="header-progress-pill" title="Progresso das questões objetivas">
+        <!-- Mode Switcher Pill -->
+        <button id="btn-mode-switch" class="mode-switcher-btn" title="Alternar entre Modo Prova e Simulado Geral">
+          <span id="header-mode-icon">🎯</span>
+          <span id="header-mode-text">Modo Prova</span>
+          <span class="mode-pill-badge" id="header-mode-badge">7 Qs</span>
+          <span class="mode-switch-arrow">▾</span>
+        </button>
+
+        <!-- Progress Counter -->
+        <div class="progress-pill" id="header-progress-pill" title="Progresso da resolução">
           <span class="pulse-dot"></span>
-          <span id="answered-count">0</span> / <span id="total-evaluable-count">65</span> respondidas
+          <span id="answered-count">0</span> / <span id="total-evaluable-count">7</span> respondidas
         </div>
 
+        <!-- Theme Toggle -->
         <button id="theme-toggle" class="icon-btn" title="Alternar Modo Escuro/Claro" aria-label="Alternar tema">
           <span id="theme-icon">🌙</span>
         </button>
 
-        <button id="btn-restart-header" class="icon-btn text-icon-btn" title="Reiniciar Simulado" aria-label="Reiniciar">
+        <!-- Reset Button -->
+        <button id="btn-restart-header" class="icon-btn text-icon-btn" title="Reiniciar Questões" aria-label="Reiniciar">
           <span>🔄</span>
           <span class="btn-text">Reiniciar</span>
         </button>
@@ -54,7 +65,7 @@
           <!-- Mode Alert (shown only when in "Refazer apenas as que errei") -->
           <div id="retry-mode-banner" class="retry-banner" style="display: none;">
             <span>🎯 <strong>Modo Revisão Focada:</strong> Praticando apenas as questões que você errou anteriormente (<span id="retry-count">0</span> questões).</span>
-            <button id="btn-exit-retry" class="btn-sm btn-link">Voltar ao Simulado Completo</button>
+            <button id="btn-exit-retry" class="btn-sm btn-link">Voltar ao Teste Completo</button>
           </div>
 
           <div class="card question-card">
@@ -62,18 +73,18 @@
             <!-- Metadata Tags Bar -->
             <div class="card-meta-bar">
               <div class="meta-tags">
-                <span id="badge-exam" class="badge badge-exam">POSCOMP</span>
+                <span id="badge-exam" class="badge badge-exam">PROVA</span>
                 <span id="badge-theme" class="badge badge-theme">Tema 1</span>
                 <span id="badge-correlata" class="badge badge-correlata" style="display: none;">Correlata</span>
                 <span id="badge-status" class="badge badge-special" style="display: none;">Anulada</span>
               </div>
               <div class="meta-nav-indicator">
-                Questão <strong id="current-q-num">1</strong> de <span id="total-q-num">67</span>
+                Questão <strong id="current-q-num">1</strong> de <span id="total-q-num">7</span>
               </div>
             </div>
 
             <!-- Title & Prompt -->
-            <h2 id="q-title" class="q-title">POSCOMP 2003 · Questão 69</h2>
+            <h2 id="q-title" class="q-title">Questão 1</h2>
 
             <!-- Enunciado / Statement -->
             <div id="q-statement" class="q-statement"></div>
@@ -81,7 +92,7 @@
             <!-- Diagram Space-Time (if question has SVG) -->
             <div id="q-diagram-container" class="q-diagram-container" style="display: none;"></div>
 
-            <!-- Discursive Area (Q58) -->
+            <!-- Discursive Area (Q58 in Geral) -->
             <div id="discursive-area" class="discursive-area" style="display: none;">
               <label for="discursive-input" class="input-label">Sua resposta rascunho / anotação:</label>
               <textarea id="discursive-input" class="discursive-textarea" rows="4" placeholder="Escreva aqui sua resposta antes de consultar o padrão oficial..."></textarea>
@@ -115,13 +126,13 @@
 
               <div class="footer-right">
                 <button id="btn-next" class="btn btn-primary" title="Próxima questão (Atalho: Seta Direita)">Próxima →</button>
-                <button id="btn-finish" class="btn btn-accent" title="Finalizar e ver resultado">Finalizar Simulado 🏁</button>
+                <button id="btn-finish" class="btn btn-accent" title="Finalizar e ver resultado"><span id="btn-finish-text">Finalizar Prova 🏁</span></button>
               </div>
             </div>
 
             <!-- Source Citation -->
             <div class="card-source-bar">
-              <span id="q-source">Fonte: poscomp/2003/03_tec.pdf</span>
+              <span id="q-source">Fonte: Avaliação de Sistemas Distribuídos</span>
             </div>
           </div>
 
@@ -131,33 +142,40 @@
         <aside class="sidebar-map">
           <div class="card sidebar-card">
             <div class="sidebar-header">
-              <h3 class="sidebar-title">Mapa de Questões</h3>
-              <span class="sidebar-badge" id="sidebar-summary-badge">0 / 67</span>
+              <h3 class="sidebar-title" id="sidebar-title">Mapa de Questões</h3>
+              <span class="sidebar-badge" id="sidebar-summary-badge">0 / 7</span>
             </div>
 
-            <!-- Filters -->
-            <div class="filter-group">
-              <label for="filter-exam" class="filter-label">Filtrar por Banca:</label>
-              <select id="filter-exam" class="filter-select">
-                <option value="all">Todas as Bancas (67)</option>
-                <option value="POSCOMP">Apenas POSCOMP (44)</option>
-                <option value="ENADE">Apenas ENADE (23)</option>
-              </select>
+            <!-- Filters Container (Active only in Simulado Geral) -->
+            <div id="sidebar-filters-container" style="display: none;">
+              <div class="filter-group">
+                <label for="filter-exam" class="filter-label">Filtrar por Banca:</label>
+                <select id="filter-exam" class="filter-select">
+                  <option value="all">Todas as Bancas (67)</option>
+                  <option value="POSCOMP">Apenas POSCOMP (44)</option>
+                  <option value="ENADE">Apenas ENADE (23)</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="filter-theme" class="filter-label">Filtrar por Tema:</label>
+                <select id="filter-theme" class="filter-select">
+                  <option value="all">Todos os 8 Temas</option>
+                  <option value="1">1. Conceitos e características (11)</option>
+                  <option value="2">2. Modelos arquiteturais e processos (10)</option>
+                  <option value="3">3. Comunicação entre processos (10)</option>
+                  <option value="4">4. Tempo, sincronização e eleição (8)</option>
+                  <option value="5">5. Replicação e consistência (5)</option>
+                  <option value="6">6. Falhas e tolerância (4)</option>
+                  <option value="7">7. Transações e BD distribuídos (4)</option>
+                  <option value="8">8. Nuvem, containers e IoT (15)</option>
+                </select>
+              </div>
             </div>
 
-            <div class="filter-group">
-              <label for="filter-theme" class="filter-label">Filtrar por Tema:</label>
-              <select id="filter-theme" class="filter-select">
-                <option value="all">Todos os 8 Temas</option>
-                <option value="1">1. Conceitos e características (11)</option>
-                <option value="2">2. Modelos arquiteturais e processos (10)</option>
-                <option value="3">3. Comunicação entre processos (10)</option>
-                <option value="4">4. Tempo, sincronização e eleição (8)</option>
-                <option value="5">5. Replicação e consistência (5)</option>
-                <option value="6">6. Falhas e tolerância (4)</option>
-                <option value="7">7. Transações e BD distribuídos (4)</option>
-                <option value="8">8. Nuvem, containers e IoT (15)</option>
-              </select>
+            <!-- Mode Notice in Sidebar (For Modo Prova) -->
+            <div id="sidebar-prova-notice" class="sidebar-info-box">
+              <span>🎯 <strong>Questões Embaralhadas:</strong> A ordem das 7 questões foi sorteada aleatoriamente para este teste.</span>
             </div>
 
             <!-- Legend -->
@@ -169,12 +187,12 @@
 
             <!-- Question Numbers Grid -->
             <div id="questions-grid" class="questions-grid">
-              <!-- Rendered dynamically (1..67 buttons) -->
+              <!-- Rendered dynamically -->
             </div>
 
             <!-- Quick Finish in Sidebar -->
             <div class="sidebar-finish-box">
-              <button id="btn-sidebar-finish" class="btn btn-accent btn-block">Concluir Simulado 🏁</button>
+              <button id="btn-sidebar-finish" class="btn btn-accent btn-block"><span id="sidebar-finish-text">Concluir Prova 🏁</span></button>
             </div>
           </div>
         </aside>
@@ -190,15 +208,15 @@
         <div class="card score-hero-card">
           <div class="score-header">
             <span class="score-trophy">📊</span>
-            <h2>Resultado do Simulado</h2>
-            <p class="score-subtitle">Confira seu desempenho nas questões válidas de Sistemas Distribuídos</p>
+            <h2 id="result-title">Resultado da Avaliação</h2>
+            <p class="score-subtitle" id="result-subtitle">Confira seu desempenho nas questões de Sistemas Distribuídos</p>
           </div>
 
           <div class="score-stats-grid">
             <div class="stat-box main-score">
               <div class="stat-number" id="final-percentage">0%</div>
-              <div class="stat-label">Aproveitamento Geral</div>
-              <div class="stat-subtext" id="final-score-fraction">0 de 65 acertos</div>
+              <div class="stat-label">Aproveitamento</div>
+              <div class="stat-subtext" id="final-score-fraction">0 de 7 acertos</div>
             </div>
 
             <div class="stat-box stat-correct">
@@ -219,11 +237,15 @@
 
           <!-- Action Buttons -->
           <div class="results-actions">
+            <!-- New Re-shuffle Attempt (Modo Prova) -->
+            <button id="btn-reshuffle-test" class="btn btn-primary btn-lg" style="display: none;">
+              🎲 Nova Tentativa (Reembaralhar)
+            </button>
             <button id="btn-retry-errors" class="btn btn-accent btn-lg">
               🎯 Refazer Apenas as que Errei (<span id="retry-error-badge">0</span>)
             </button>
             <button id="btn-restart-all" class="btn btn-outline btn-lg">
-              🔄 Reiniciar Simulado Completo
+              🔄 Reiniciar
             </button>
             <button id="btn-back-to-test" class="btn btn-ghost btn-lg">
               ✏️ Retomar Questões
@@ -231,8 +253,8 @@
           </div>
         </div>
 
-        <!-- Performance by Theme Breakdown -->
-        <div class="card theme-breakdown-card">
+        <!-- Performance by Theme Breakdown (Shown in Simulado Geral) -->
+        <div id="theme-breakdown-card" class="card theme-breakdown-card">
           <h3 class="card-section-title">Aproveitamento por Tema</h3>
           <p class="section-desc">Identifique seus pontos fortes e áreas que demandam maior revisão teórica:</p>
           <div id="theme-progress-list" class="theme-progress-list">
@@ -245,7 +267,7 @@
           <div class="review-header-bar">
             <div>
               <h3 class="card-section-title">Revisão Detalhada das Questões</h3>
-              <p class="section-desc">Analise o que você marcou, o gabarito oficial e a fundamentação teórica de cada item.</p>
+              <p class="section-desc">Analise o que você marcou, o gabarito oficial e a justificativa fundamentada de cada questão.</p>
             </div>
 
             <!-- Review Filter Buttons -->
@@ -254,7 +276,7 @@
                 Apenas as que Errei (<span id="filter-wrong-count">0</span>)
               </button>
               <button class="review-filter-btn" data-filter="all">
-                Todas as Questões (<span id="filter-all-count">67</span>)
+                Todas as Questões (<span id="filter-all-count">7</span>)
               </button>
               <button class="review-filter-btn" data-filter="correct">
                 Apenas Acertos (<span id="filter-correct-count">0</span>)
@@ -273,12 +295,55 @@
 
   </main>
 
+  <!-- Modal Mode Select (Initial / Welcome Selector) -->
+  <div id="modal-mode-select" class="modal-backdrop" style="display: none;">
+    <div class="modal-box modal-mode-box">
+      <div class="modal-icon">📚</div>
+      <h2 class="modal-title">Escolha o Modo de Estudo</h2>
+      <p class="modal-msg">Selecione como você deseja resolver as questões de Sistemas Distribuídos:</p>
+
+      <div class="mode-cards-grid">
+        <!-- Card 1: Modo Prova -->
+        <div class="mode-card" id="card-select-prova" tabindex="0" role="button">
+          <div class="mode-card-header">
+            <span class="mode-card-icon">🎯</span>
+            <span class="badge badge-exam">Recomendado</span>
+          </div>
+          <h3 class="mode-card-title">Modo Prova (Avaliação)</h3>
+          <p class="mode-card-desc">Exclusivamente as <strong>7 questões selecionadas</strong> da disciplina. As questões são <strong>embaralhadas aleatoriamente</strong> a cada tentativa para testar sua retenção real sem vícios de ordem.</p>
+          <div class="mode-card-footer">
+            <span class="mode-card-tag">7 Questões · Embaralhadas</span>
+            <span class="mode-card-arrow">Iniciar Prova →</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Simulado Geral -->
+        <div class="mode-card" id="card-select-geral" tabindex="0" role="button">
+          <div class="mode-card-header">
+            <span class="mode-card-icon">🌐</span>
+            <span class="badge badge-theme">Completo</span>
+          </div>
+          <h3 class="mode-card-title">Simulado Geral (ENADE & POSCOMP)</h3>
+          <p class="mode-card-desc">Banco amplo com <strong>67 questões oficiais</strong> divididas em 8 temas, com filtros de bancas (POSCOMP / ENADE) e diagramas espaço-tempo interativos.</p>
+          <div class="mode-card-footer">
+            <span class="mode-card-tag">67 Questões · 8 Temas</span>
+            <span class="mode-card-arrow">Iniciar Simulado →</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer-note">
+        <span>Dica: Você pode alternar entre os modos a qualquer momento clicando no botão do cabeçalho.</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Confirm Finish -->
   <div id="modal-finish" class="modal-backdrop" style="display: none;">
     <div class="modal-box">
       <div class="modal-icon">⚠️</div>
-      <h3 class="modal-title">Finalizar Simulado?</h3>
-      <p id="modal-finish-msg" class="modal-msg">Você ainda possui questões em branco. Deseja realmente finalizar o simulado e ver o gabarito?</p>
+      <h3 class="modal-title">Finalizar Avaliação?</h3>
+      <p id="modal-finish-msg" class="modal-msg">Você ainda possui questões em branco. Deseja realmente finalizar e ver o gabarito comentado?</p>
       <div class="modal-actions">
         <button id="btn-modal-cancel" class="btn btn-outline">Continuar Respondendo</button>
         <button id="btn-modal-confirm" class="btn btn-accent">Sim, Finalizar e Ver Nota</button>

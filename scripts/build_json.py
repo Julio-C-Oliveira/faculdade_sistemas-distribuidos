@@ -233,8 +233,15 @@ def main():
 
     # Gera também questoes-data.js para garantir funcionamento offline em file:// sem erro de CORS
     js_data_file = os.path.join(root_dir, "questoes-data.js")
+    prova_file = os.path.join(root_dir, "questoes_prova.json")
+    prova_data = "[]"
+    if os.path.exists(prova_file):
+        with open(prova_file, "r", encoding="utf-8") as pf:
+            prova_data = pf.read()
+
     with open(js_data_file, "w", encoding="utf-8") as f:
-        f.write("window.QUESTOES_DATA = " + json.dumps(questions, ensure_ascii=False, indent=2) + ";\n")
+        f.write("window.QUESTOES_DATA = " + json.dumps(questions, ensure_ascii=False, indent=2) + ";\n\n")
+        f.write("window.QUESTOES_PROVA_DATA = " + prova_data + ";\n")
 
     print(f"✔ Arquivo {output_file} salvo com sucesso com {len(questions)} questões!")
     print(f"✔ Arquivo {js_data_file} gerado para compatibilidade web offline!")
